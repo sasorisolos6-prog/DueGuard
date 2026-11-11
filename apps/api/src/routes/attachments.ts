@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { fromBase64, toBase64 } from '../lib/crypto';
 import { serializeTracker } from '../lib/validation';
 import { requireAuth } from '../middleware/auth';
 import { PLAN_LIMITS, type AppVariables, type Env, type TrackerRow } from '../types';
@@ -12,7 +13,8 @@ const ALLOWED_MIMES: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
 };
-const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024; // 2 MB
+// Keep comfortably below D1 1 MB row/statement limit even after base64 overhead
+const MAX_ATTACHMENT_BYTES = 350 * 1024;
 
 function matchesImageSignature(mime: string, bytes: Uint8Array): boolean {
   if (bytes.length < 12) return false;
@@ -42,7 +44,6 @@ attachmentRoutes.post('/:id/attachment', async (c) => {
 
   if (!tracker) return c.json({ error: 'Tracker not found.' }, 404);
 
-  // Enforce attachment limit unless replacing an existing attachment on this tracker
   if (!tracker.attachment_key) {
     const countRes = await c.env.DB.prepare(
       'SELECT COUNT(*) as total FROM trackers WHERE user_id = ? AND attachment_key IS NOT NULL'
@@ -81,7 +82,10 @@ attachmentRoutes.post('/:id/attachment', async (c) => {
     return c.json({ error: 'Only PNG, JPEG, and WebP images are supported.' }, 400);
   }
   if (file.size === 0 || file.size > MAX_ATTACHMENT_BYTES) {
-    return c.json({ error: 'Image must be smaller than 2 MB.' }, 400);
+    return c.json(
+      { error: 'Image must be 350 KB or smaller after compression.' },
+      400
+    );
   }
 
   const buffer = await file.arrayBuffer();
@@ -90,24 +94,29 @@ attachmentRoutes.post('/:id/attachment', async (c) => {
     return c.json({ error: 'Invalid image file signature.' }, 400);
   }
 
-  const objectKey = `${authUser.id}/${id}-${crypto.randomUUID()}.${ext}`;
-  await c.env.VAULT_BUCKET.put(objectKey, buffer, {
-    httpMetadata: { contentType: file.type },
-  });
-
-  if (tracker.attachment_key) {
-    await c.env.VAULT_BUCKET.delete(tracker.attachment_key);
-  }
-
-  const safeName = file.name.slice(0, 120) || `invoice.${ext}`;
   const now = new Date().toISOString();
+  const dataBase64 = toBase64(bytes);
+  const safeName = file.name.slice(0, 120) || `invoice.${ext}`;
+  const attachmentKey = `d1:${id}`;
+
+  await c.env.DB.prepare(
+    `INSERT INTO tracker_attachments (tracker_id, user_id, mime, data_base64, size_bytes, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(tracker_id) DO UPDATE SET
+       mime = excluded.mime,
+       data_base64 = excluded.data_base64,
+       size_bytes = excluded.size_bytes,
+       created_at = excluded.created_at`
+  )
+    .bind(id, authUser.id, file.type, dataBase64, bytes.length, now)
+    .run();
 
   await c.env.DB.prepare(
     `UPDATE trackers
      SET attachment_key = ?, attachment_mime = ?, attachment_name = ?, updated_at = ?
      WHERE id = ? AND user_id = ?`
   )
-    .bind(objectKey, file.type, safeName, now, id, authUser.id)
+    .bind(attachmentKey, file.type, safeName, now, id, authUser.id)
     .run();
 
   const updated = await c.env.DB.prepare('SELECT * FROM trackers WHERE id = ? AND user_id = ?')
@@ -121,25 +130,21 @@ attachmentRoutes.get('/:id/attachment', async (c) => {
   const authUser = c.get('authUser');
   const id = c.req.param('id');
 
-  const tracker = await c.env.DB.prepare(
-    'SELECT attachment_key, attachment_mime FROM trackers WHERE id = ? AND user_id = ?'
+  const row = await c.env.DB.prepare(
+    'SELECT mime, data_base64 FROM tracker_attachments WHERE tracker_id = ? AND user_id = ?'
   )
     .bind(id, authUser.id)
-    .first<Pick<TrackerRow, 'attachment_key' | 'attachment_mime'>>();
+    .first<{ mime: string; data_base64: string }>();
 
-  if (!tracker || !tracker.attachment_key) {
+  if (!row) {
     return c.json({ error: 'Attachment not found.' }, 404);
   }
 
-  const object = await c.env.VAULT_BUCKET.get(tracker.attachment_key);
-  if (!object) {
-    return c.json({ error: 'Attachment file missing from vault storage.' }, 404);
-  }
-
+  const bytes = fromBase64(row.data_base64);
   const headers = new Headers();
-  headers.set('Content-Type', tracker.attachment_mime || 'application/octet-stream');
+  headers.set('Content-Type', row.mime || 'application/octet-stream');
   headers.set('Cache-Control', 'private, max-age=300');
-  return new Response(object.body, { headers });
+  return new Response(bytes, { headers });
 });
 
 attachmentRoutes.delete('/:id/attachment', async (c) => {
@@ -147,16 +152,16 @@ attachmentRoutes.delete('/:id/attachment', async (c) => {
   const id = c.req.param('id');
 
   const tracker = await c.env.DB.prepare(
-    'SELECT attachment_key FROM trackers WHERE id = ? AND user_id = ?'
+    'SELECT id FROM trackers WHERE id = ? AND user_id = ?'
   )
     .bind(id, authUser.id)
-    .first<Pick<TrackerRow, 'attachment_key'>>();
+    .first<Pick<TrackerRow, 'id'>>();
 
   if (!tracker) return c.json({ error: 'Tracker not found.' }, 404);
 
-  if (tracker.attachment_key) {
-    await c.env.VAULT_BUCKET.delete(tracker.attachment_key);
-  }
+  await c.env.DB.prepare('DELETE FROM tracker_attachments WHERE tracker_id = ? AND user_id = ?')
+    .bind(id, authUser.id)
+    .run();
 
   await c.env.DB.prepare(
     `UPDATE trackers

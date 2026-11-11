@@ -14,7 +14,6 @@ export type TrackerStatus = 'active' | 'cancelled' | 'completed';
 
 export interface Env {
   DB: D1Database;
-  VAULT_BUCKET: R2Bucket;
   JWT_SECRET?: string;
   APP_BASE_URL?: string;
   RESEND_API_KEY?: string;

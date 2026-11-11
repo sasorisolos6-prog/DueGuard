@@ -11,10 +11,5 @@ crons = ["0 3 * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "dueguard-db"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "92da7655-5bc6-490a-ab6b-7db7a4e80e03"
 migrations_dir = "migrations"
-
-# Before production deploy: run `npx wrangler r2 bucket create dueguard-vault`
-[[r2_buckets]]
-binding = "VAULT_BUCKET"
-bucket_name = "dueguard-vault"

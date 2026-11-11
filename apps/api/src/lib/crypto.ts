@@ -3,7 +3,7 @@ import type { AuthUser } from '../types';
 
 const PBKDF2_ITERATIONS = 100_000;
 
-function toBase64(bytes: Uint8Array): string {
+export function toBase64(bytes: Uint8Array): string {
   let binary = '';
   for (let i = 0; i < bytes.length; i++) {
     binary += String.fromCharCode(bytes[i]);
@@ -11,7 +11,7 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-function fromBase64(str: string): Uint8Array {
+export function fromBase64(str: string): Uint8Array {
   const binary = atob(str);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {

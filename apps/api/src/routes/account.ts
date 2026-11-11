@@ -34,16 +34,9 @@ accountRoutes.get('/export', async (c) => {
 accountRoutes.delete('/', async (c) => {
   const authUser = c.get('authUser');
 
-  const attachments = await c.env.DB.prepare(
-    'SELECT attachment_key FROM trackers WHERE user_id = ? AND attachment_key IS NOT NULL'
-  )
+  await c.env.DB.prepare('DELETE FROM tracker_attachments WHERE user_id = ?')
     .bind(authUser.id)
-    .all<{ attachment_key: string }>();
-
-  for (const row of attachments.results ?? []) {
-    await c.env.VAULT_BUCKET.delete(row.attachment_key);
-  }
-
+    .run();
   await c.env.DB.prepare('DELETE FROM notification_logs WHERE user_id = ?')
     .bind(authUser.id)
     .run();

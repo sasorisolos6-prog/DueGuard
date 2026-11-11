@@ -213,19 +213,18 @@ trackerRoutes.delete('/:id', async (c) => {
   const id = c.req.param('id');
 
   const existing = await c.env.DB.prepare(
-    'SELECT id, attachment_key FROM trackers WHERE id = ? AND user_id = ?'
+    'SELECT id FROM trackers WHERE id = ? AND user_id = ?'
   )
     .bind(id, authUser.id)
-    .first<Pick<TrackerRow, 'id' | 'attachment_key'>>();
+    .first<Pick<TrackerRow, 'id'>>();
 
   if (!existing) {
     return c.json({ error: 'Tracker not found.' }, 404);
   }
 
-  if (existing.attachment_key) {
-    await c.env.VAULT_BUCKET.delete(existing.attachment_key);
-  }
-
+  await c.env.DB.prepare('DELETE FROM tracker_attachments WHERE tracker_id = ? AND user_id = ?')
+    .bind(id, authUser.id)
+    .run();
   await c.env.DB.prepare('DELETE FROM trackers WHERE id = ? AND user_id = ?')
     .bind(id, authUser.id)
     .run();

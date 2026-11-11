@@ -5,7 +5,7 @@ DueGuard is an open-source, full-stack **Website + PWA + Android App** that stop
 ## Features
 * **Smart Dashboard:** Tracks Monthly Burn (`₹/mo`), Annual Projected Spend (`₹/yr`), Urgent Deadlines (`≤7 days`), and Money Saved from cancelled trials/subscriptions.
 * **1-Tap Indian Presets:** Free Trial Trap, 7-Day Return Window, Monthly OTT/App, 84-Day Mobile Recharge, 1-Yr Warranty + Bill, and Insurance/PUC/Docs.
-* **Private Invoice Screenshot Vault:** Automatically resizes and compresses receipts to WebP in your browser before storing them in private Cloudflare R2 storage (verified per-user on every download).
+* **Private Invoice Screenshot Vault:** Automatically resizes and compresses receipts to WebP in your browser before storing them in your private Cloudflare D1 vault (verified per-user on every download, with zero credit card required to host).
 * **Multi-Channel Alerts (₹0 Cost):**
   * **Daily Cron Email Alerts** (via Resend free tier)
   * **Telegram Bot Alerts** (`₹0` forever via `/start <code>` linking)
@@ -17,7 +17,7 @@ DueGuard is an open-source, full-stack **Website + PWA + Android App** that stop
 
 ## Tech Stack
 * **Web + PWA + Android:** React 19, Vite, TypeScript, Tailwind CSS v4, `vite-plugin-pwa`, Capacitor 7 (`@capacitor/android`, `@capacitor/local-notifications`)
-* **Backend API + Cron:** Cloudflare Workers, Hono, Cloudflare D1 (SQLite), Cloudflare R2, Web Crypto PBKDF2 + JWT (`jose`)
+* **Backend API + Cron:** Cloudflare Workers, Hono, Cloudflare D1 (SQLite), Web Crypto PBKDF2 + JWT (`jose`)
 
 ---
 
@@ -49,13 +49,12 @@ DueGuard is an open-source, full-stack **Website + PWA + Android App** that stop
 
 ---
 
-## Deploying to Production (₹0 Cloudflare Free Tier)
+## Deploying to Production (₹0 Cloudflare Free Tier — No Card Required)
 
-1. Create D1 database & R2 bucket:
+1. Create D1 database:
    ```bash
    cd apps/api
    npx wrangler d1 create dueguard-db
-   npx wrangler r2 bucket create dueguard-vault
    ```
 2. Paste your real `database_id` into `apps/api/wrangler.toml`, then apply remote migrations:
    ```bash

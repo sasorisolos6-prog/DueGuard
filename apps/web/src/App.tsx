@@ -591,7 +591,7 @@ export function App() {
         )}
 
         <footer className="border-t border-slate-200/80 pt-5 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-          DueGuard · Open Source (AGPLv3) · Private R2 Vault · 1-Click JSON & Calendar Export
+          DueGuard · Open Source (AGPLv3) · Private Vault · 1-Click JSON & Calendar Export
         </footer>
       </main>
 

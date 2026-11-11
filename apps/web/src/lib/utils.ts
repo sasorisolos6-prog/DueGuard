@@ -127,48 +127,61 @@ export function getUrgencyBadge(daysLeft: number, status: Tracker['status']) {
   };
 }
 
-export async function compressImageToWebp(file: File, maxDim = 1400): Promise<File> {
+export async function compressImageToWebp(file: File, maxDim = 1200): Promise<File> {
+  const TARGET_MAX_BYTES = 320 * 1024;
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
 
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      let { width, height } = img;
-      if (width > maxDim || height > maxDim) {
-        if (width >= height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(file);
-        return;
-      }
-
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve(file);
-            return;
+    function encodeAttempt(limitDim: number, quality: number): Promise<File> {
+      return new Promise((res) => {
+        let { width, height } = img;
+        if (width > limitDim || height > limitDim) {
+          if (width >= height) {
+            height = Math.round((height * limitDim) / width);
+            width = limitDim;
+          } else {
+            width = Math.round((width * limitDim) / height);
+            height = limitDim;
           }
-          const baseName = file.name.replace(/\.[^.]+$/, '') || 'invoice';
-          const outMime = blob.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
-          const ext = outMime === 'image/webp' ? 'webp' : 'jpg';
-          resolve(new File([blob], `${baseName}.${ext}`, { type: outMime }));
-        },
-        'image/webp',
-        0.82
-      );
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          res(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              res(file);
+              return;
+            }
+            const baseName = file.name.replace(/\.[^.]+$/, '') || 'invoice';
+            const outMime = blob.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
+            const ext = outMime === 'image/webp' ? 'webp' : 'jpg';
+            res(new File([blob], `${baseName}.${ext}`, { type: outMime }));
+          },
+          'image/webp',
+          quality
+        );
+      });
+    }
+
+    img.onload = async () => {
+      URL.revokeObjectURL(objectUrl);
+      let out = await encodeAttempt(maxDim, 0.8);
+      if (out.size > TARGET_MAX_BYTES) {
+        out = await encodeAttempt(960, 0.68);
+      }
+      if (out.size > TARGET_MAX_BYTES) {
+        out = await encodeAttempt(760, 0.56);
+      }
+      resolve(out);
     };
 
     img.onerror = () => {
