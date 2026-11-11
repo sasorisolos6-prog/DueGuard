@@ -73,15 +73,15 @@ export const PLAN_LIMITS: Record<
   { maxActiveTrackers: number; maxAttachments: number; priceInrYear: number; priceInrMonth: number }
 > = {
   free: {
-    maxActiveTrackers: 10,
-    maxAttachments: 2,
+    maxActiveTrackers: 500,
+    maxAttachments: 100,
     priceInrYear: 0,
     priceInrMonth: 0,
   },
   pro: {
     maxActiveTrackers: 1000,
     maxAttachments: 1000,
-    priceInrYear: 149,
-    priceInrMonth: 29,
+    priceInrYear: 0,
+    priceInrMonth: 0,
   },
 };

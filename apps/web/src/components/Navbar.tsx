@@ -1,4 +1,4 @@
-import { Bell, Crown, LogIn, LogOut, Moon, Plus, ShieldCheck, Sun } from 'lucide-react';
+import { Bell, LogIn, LogOut, Moon, Plus, ShieldCheck, Sun } from 'lucide-react';
 import type { UserProfile } from '../types';
 
 interface NavbarProps {
@@ -7,7 +7,6 @@ interface NavbarProps {
   onToggleDark: () => void;
   onOpenNewTracker: () => void;
   onOpenAlerts: () => void;
-  onOpenPro: () => void;
   onOpenAuth: () => void;
   onLogout: () => void;
 }
@@ -18,7 +17,6 @@ export function Navbar({
   onToggleDark,
   onOpenNewTracker,
   onOpenAlerts,
-  onOpenPro,
   onOpenAuth,
   onLogout,
 }: NavbarProps) {
@@ -69,17 +67,6 @@ export function Navbar({
           >
             <Bell className="h-4 w-4 text-teal-600 dark:text-teal-400" />
             <span className="hidden sm:inline">Alerts</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenPro}
-            title="DueGuard Pro Plans"
-            className="inline-flex h-8 shrink-0 whitespace-nowrap items-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-2 text-[11px] font-semibold text-amber-800 transition hover:bg-amber-100 sm:h-auto sm:px-2.5 sm:py-2 sm:text-xs dark:border-amber-800/60 dark:bg-amber-950/50 dark:text-amber-300"
-          >
-            <Crown className="h-3.5 w-3.5 shrink-0" />
-            <span className="sm:hidden">Pro</span>
-            <span className="hidden sm:inline">{user?.plan === 'pro' ? 'Pro' : 'Upgrade'}</span>
           </button>
 
           <button

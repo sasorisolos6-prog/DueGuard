@@ -13,13 +13,12 @@ import { AttachmentPreviewModal } from './components/AttachmentPreviewModal';
 import { AuthModal } from './components/AuthModal';
 import { HeroTrustBanner } from './components/HeroTrustBanner';
 import { Navbar } from './components/Navbar';
-import { ProModal } from './components/ProModal';
 import { SpendBreakdown } from './components/SpendBreakdown';
 import { SummaryCards } from './components/SummaryCards';
 import { TimelineView } from './components/TimelineView';
 import { TrackerCard } from './components/TrackerCard';
 import { TrackerModal } from './components/TrackerModal';
-import { ApiError, api, getStoredToken, setStoredToken } from './lib/api';
+import { api, getStoredToken, setStoredToken } from './lib/api';
 import {
   computeLocalSummary,
   createDemoTracker,
@@ -38,7 +37,7 @@ import {
   formatInr,
   getTodayLocalIso,
 } from './lib/utils';
-import type { Tracker, TrackerFormInput, UsageInfo, UserProfile } from './types';
+import type { Tracker, TrackerFormInput, UserProfile } from './types';
 
 type FilterTab =
   | 'active'
@@ -70,7 +69,6 @@ const FILTER_TABS: Array<{ id: FilterTab; label: string }> = [
 export function App() {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('dueguard_theme') === 'dark');
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [usage, setUsage] = useState<UsageInfo | null>(null);
   const [trackers, setTrackers] = useState<Tracker[]>(() => loadDemoTrackers());
   const [loading, setLoading] = useState(Boolean(getStoredToken()));
   const [search, setSearch] = useState('');
@@ -88,7 +86,6 @@ export function App() {
   const [previewTracker, setPreviewTracker] = useState<Tracker | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
-  const [proModalOpen, setProModalOpen] = useState(false);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -118,7 +115,6 @@ export function App() {
     const token = getStoredToken();
     if (!token) {
       setUser(null);
-      setUsage(null);
       setTrackers(loadDemoTrackers());
       setLoading(false);
       return;
@@ -128,12 +124,10 @@ export function App() {
     try {
       const [meRes, trackersRes] = await Promise.all([api.getMe(), api.getTrackers()]);
       setUser(meRes.user);
-      setUsage(meRes.usage);
       setTrackers(trackersRes.trackers);
     } catch {
       setStoredToken(null);
       setUser(null);
-      setUsage(null);
       setTrackers(loadDemoTrackers());
     } finally {
       setLoading(false);
@@ -236,29 +230,22 @@ export function App() {
       return;
     }
 
-    try {
-      let saved: Tracker;
-      if (editingId) {
-        const res = await api.updateTracker(editingId, input);
-        saved = res.tracker;
-      } else {
-        const res = await api.createTracker(input);
-        saved = res.tracker;
-      }
-
-      if (attachmentFile) {
-        const attachRes = await api.uploadAttachment(saved.id, attachmentFile);
-        saved = attachRes.tracker;
-      }
-
-      await loadCloudData();
-      showToast(editingId ? 'Tracker updated.' : 'Tracker protected!');
-    } catch (err) {
-      if (err instanceof ApiError && err.code === 'PLAN_LIMIT_REACHED') {
-        setProModalOpen(true);
-      }
-      throw err;
+    let saved: Tracker;
+    if (editingId) {
+      const res = await api.updateTracker(editingId, input);
+      saved = res.tracker;
+    } else {
+      const res = await api.createTracker(input);
+      saved = res.tracker;
     }
+
+    if (attachmentFile) {
+      const attachRes = await api.uploadAttachment(saved.id, attachmentFile);
+      saved = attachRes.tracker;
+    }
+
+    await loadCloudData();
+    showToast(editingId ? 'Tracker updated.' : 'Tracker protected!');
   }
 
   async function handleMarkStatus(tracker: Tracker, status: Tracker['status']) {
@@ -294,9 +281,6 @@ export function App() {
             : 'Marked done.'
       );
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'PLAN_LIMIT_REACHED') {
-        setProModalOpen(true);
-      }
       showToast(err instanceof Error ? err.message : 'Update failed.');
     }
   }
@@ -320,9 +304,6 @@ export function App() {
       await loadCloudData();
       showToast(`Renewed! Next due date: ${formatFriendlyDate(res.tracker.expiryDate)}`);
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'PLAN_LIMIT_REACHED') {
-        setProModalOpen(true);
-      }
       showToast(err instanceof Error ? err.message : 'Renew failed.');
     }
   }
@@ -401,7 +382,6 @@ export function App() {
   function handleLogout() {
     setStoredToken(null);
     setUser(null);
-    setUsage(null);
     setTrackers(loadDemoTrackers());
     showToast('Signed out. Switched back to Local Demo.');
   }
@@ -417,7 +397,6 @@ export function App() {
           setTrackerModalOpen(true);
         }}
         onOpenAlerts={() => setAlertsModalOpen(true)}
-        onOpenPro={() => setProModalOpen(true)}
         onOpenAuth={() => setAuthModalOpen(true)}
         onLogout={handleLogout}
       />
@@ -650,19 +629,10 @@ export function App() {
         onAccountDeleted={() => {
           setStoredToken(null);
           setUser(null);
-          setUsage(null);
           setTrackers(loadDemoTrackers());
           showToast('Account & all vault files permanently deleted.');
         }}
         onToast={showToast}
-      />
-
-      <ProModal
-        isOpen={proModalOpen}
-        user={user}
-        usage={usage}
-        onClose={() => setProModalOpen(false)}
-        onOpenAuth={() => setAuthModalOpen(true)}
       />
     </div>
   );

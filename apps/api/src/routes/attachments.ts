@@ -55,7 +55,7 @@ attachmentRoutes.post('/:id/attachment', async (c) => {
     if ((countRes?.total ?? 0) >= maxAttach) {
       return c.json(
         {
-          error: `Free plan allows up to ${maxAttach} invoice screenshots. Delete an old attachment or upgrade to Pro.`,
+          error: `Account limit reached (max ${maxAttach} saved invoice screenshots). Delete an old attachment first.`,
           code: 'PLAN_LIMIT_REACHED',
         },
         403

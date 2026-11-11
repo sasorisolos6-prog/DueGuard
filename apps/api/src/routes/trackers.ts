@@ -20,7 +20,7 @@ async function ensureActiveQuotaAvailable(
 
   const maxActive = PLAN_LIMITS[plan].maxActiveTrackers;
   if ((countRes?.total ?? 0) >= maxActive) {
-    return `Free plan allows up to ${maxActive} active trackers. Mark completed items or upgrade to Pro.`;
+    return `Account limit reached (max ${maxActive} active trackers). Mark completed items done to free slots.`;
   }
   return null;
 }
