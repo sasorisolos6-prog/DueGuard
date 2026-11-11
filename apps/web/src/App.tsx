@@ -407,7 +407,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="min-h-screen w-full overflow-x-clip bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <Navbar
         user={user}
         darkMode={darkMode}
@@ -422,7 +422,7 @@ export function App() {
         onLogout={handleLogout}
       />
 
-      <main className="mx-auto max-w-6xl space-y-5 px-4 pb-24 pt-5 sm:px-6 sm:pb-12">
+      <main className="mx-auto w-full max-w-6xl space-y-5 px-3 pb-24 pt-4 sm:px-6 sm:pb-12 sm:pt-5">
         {!user && !bannerDismissed && (
           <HeroTrustBanner
             canInstallPwa={Boolean(installPrompt)}
@@ -440,8 +440,8 @@ export function App() {
         <SpendBreakdown trackers={trackers} />
 
         {/* Search, Sort & View Controls */}
-        <section className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <section className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1">
             {FILTER_TABS.map((tab) => {
               const active = activeTab === tab.id;
               return (
@@ -610,7 +610,7 @@ export function App() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-lg dark:bg-white dark:text-slate-900">
+        <div className="fixed bottom-20 left-1/2 z-50 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2.5 text-center text-xs font-semibold text-white shadow-lg sm:bottom-5 dark:bg-white dark:text-slate-900">
           {toast}
         </div>
       )}

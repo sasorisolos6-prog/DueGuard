@@ -64,7 +64,7 @@ export function TrackerCard({
   const isUrgent = tracker.status === 'active' && daysLeft <= 3;
 
   return (
-    <article className="group flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs transition hover:border-teal-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700">
+    <article className="group flex min-w-0 flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs transition hover:border-teal-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -88,7 +88,7 @@ export function TrackerCard({
         </div>
 
         <div className="mt-3 flex items-start justify-between gap-3">
-          <h3 className="text-base font-semibold leading-snug text-slate-900 dark:text-white">
+          <h3 className="min-w-0 break-words text-base font-semibold leading-snug text-slate-900 dark:text-white">
             {tracker.title}
           </h3>
           {tracker.amountInr > 0 && (
@@ -111,8 +111,8 @@ export function TrackerCard({
         </div>
 
         {tracker.notes && (
-          <div className="mt-2.5 flex items-start justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
-            <p className="line-clamp-2 text-xs text-slate-600 dark:text-slate-300">
+          <div className="mt-2.5 flex min-w-0 items-start justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/60">
+            <p className="min-w-0 flex-1 break-words line-clamp-2 text-xs text-slate-600 dark:text-slate-300">
               {tracker.notes}
             </p>
             <button
