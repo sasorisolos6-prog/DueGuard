@@ -1,0 +1,20 @@
+name = "dueguard-api"
+main = "src/index.ts"
+compatibility_date = "2025-02-14"
+
+# Daily alert check at 03:00 UTC (08:30 AM IST)
+[triggers]
+crons = ["0 3 * * *"]
+
+# Local dev uses SQLite emulation automatically.
+# Before production deploy: run `npx wrangler d1 create dueguard-db` and replace database_id.
+[[d1_databases]]
+binding = "DB"
+database_name = "dueguard-db"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+# Before production deploy: run `npx wrangler r2 bucket create dueguard-vault`
+[[r2_buckets]]
+binding = "VAULT_BUCKET"
+bucket_name = "dueguard-vault"

@@ -1,0 +1,15 @@
+# Copy this file to apps/api/.dev.vars for local development.
+# NEVER commit apps/api/.dev.vars to GitHub!
+
+JWT_SECRET="replace-with-a-long-random-secret-at-least-32-chars"
+APP_BASE_URL="http://localhost:5173"
+
+# Optional Email Alerts via Resend (https://resend.com - 3,000 free/month)
+# Leave blank in local dev to log email previews safely to the console.
+RESEND_API_KEY=""
+EMAIL_FROM="DueGuard Alerts <alerts@yourdomain.com>"
+
+# Optional Telegram Bot Alerts (100% free via @BotFather)
+TELEGRAM_BOT_TOKEN=""
+TELEGRAM_BOT_USERNAME=""
+TELEGRAM_WEBHOOK_SECRET="optional-random-webhook-secret"

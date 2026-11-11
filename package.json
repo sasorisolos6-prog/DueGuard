@@ -1,0 +1,18 @@
+{
+  "name": "dueguard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DueGuard — Smart expiry tracker for subscriptions, free trials, return windows, recharges & warranties with invoice vault and multi-channel alerts.",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace=apps/api run dev",
+    "dev:web": "npm --workspace=apps/web run dev",
+    "build:web": "npm --workspace=apps/web run build",
+    "typecheck": "npm --workspace=apps/api run typecheck && npm --workspace=apps/web run typecheck",
+    "db:migrate:local": "npm --workspace=apps/api run db:migrate:local",
+    "cap:sync": "npm --workspace=apps/web run cap:sync"
+  }
+}

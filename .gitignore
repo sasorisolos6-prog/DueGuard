@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+dist-ssr/
+*.local
+
+# Environment & Secrets (NEVER commit secrets!)
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Cloudflare Wrangler local state
+.wrangler/
+apps/api/.wrangler/
+
+# Capacitor / Android build artifacts & keystores
+apps/web/android/.gradle/
+apps/web/android/app/build/
+apps/web/android/build/
+apps/web/android/captures/
+apps/web/android/.cxx/
+apps/web/android/local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Logs & OS files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
