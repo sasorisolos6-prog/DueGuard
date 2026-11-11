@@ -136,7 +136,7 @@ export function AuthModal({ isOpen, localTrackers, onClose, onSuccess }: AuthMod
                 type="text"
                 required
                 minLength={2}
-                placeholder="Ankit Sharma"
+                placeholder="Your full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-teal-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
