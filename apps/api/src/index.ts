@@ -6,6 +6,7 @@ import { authRoutes } from './routes/auth';
 import { telegramRoutes } from './routes/telegram';
 import { trackerRoutes } from './routes/trackers';
 import { runDailyExpiryReminders } from './scheduled';
+import { sanitizeSecretText } from './lib/alerts';
 import type { AppVariables, Env } from './types';
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
@@ -47,7 +48,16 @@ app.route('/api/telegram', telegramRoutes);
 app.route('/api/account', accountRoutes);
 
 app.onError((err, c) => {
-  console.error('Unhandled API error:', err);
+  const rawMessage = err instanceof Error ? err.stack || err.message : String(err);
+  let sanitized = sanitizeSecretText(rawMessage, [
+    c.env?.JWT_SECRET,
+    c.env?.RESEND_API_KEY,
+    c.env?.TELEGRAM_BOT_TOKEN,
+    c.env?.TELEGRAM_WEBHOOK_SECRET,
+  ]);
+  // Redact any user email addresses in error traces
+  sanitized = sanitized.replace(/[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/g, '[EMAIL_REDACTED]');
+  console.error('Unhandled API error:', sanitized);
   return c.json({ error: 'Internal server error.' }, 500);
 });
 

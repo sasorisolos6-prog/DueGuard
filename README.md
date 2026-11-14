@@ -62,11 +62,34 @@ DueGuard is an open-source, full-stack **Website + PWA + Android App** that stop
    ```
 3. Set production secrets cleanly in Cloudflare (never commit secrets!):
    ```bash
+   cd apps/api
    npx wrangler secret put JWT_SECRET
    npx wrangler secret put RESEND_API_KEY
    npx wrangler secret put TELEGRAM_BOT_TOKEN
+   npx wrangler secret put TELEGRAM_WEBHOOK_SECRET
+   npx wrangler secret put APP_BASE_URL
    ```
 4. Deploy Worker API (`npm --workspace=apps/api run deploy`) and deploy `apps/web/dist` to **Cloudflare Pages** with `VITE_API_URL` pointing to your deployed Worker URL.
+
+---
+
+## Security & Secret Safety Guidelines
+
+DueGuard enforces strict zero-trust credential hygiene across both frontend and backend:
+
+1. **No Hardcoded Secrets:**
+   No API keys, passwords, signing secrets, or database URLs exist in source code or client bundles.
+2. **Server-Side Only Credentials:**
+   `JWT_SECRET`, `RESEND_API_KEY`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_WEBHOOK_SECRET` reside strictly on the server (Worker environment variables / Cloudflare Secrets). Local development secrets belong in `apps/api/.dev.vars`, which is strictly `.gitignore`d.
+3. **Frontend Exposure Protection:**
+   React/Vite exposes variables prefixed with `VITE_` to client-side JavaScript. Only public-safe configuration (`VITE_API_URL`) uses this prefix. Sensitive tokens and private keys must **never** use client-exposed prefixes (`VITE_`, `NEXT_PUBLIC_`, `REACT_APP_`).
+4. **Log & Response Sanitization:**
+   Global error handlers and notification services automatically sanitize and redact tokens (`[REDACTED]`), stripping Telegram bot tokens, Resend keys, and Bearer authorization headers before logging. Internal database hashes (`password_hash`, `password_salt`) and private IDs (`telegram_chat_id`) are never returned in public or authenticated API JSON responses.
+5. **Private Vault Access Control:**
+   Attachment invoices in Cloudflare D1 are guarded by authenticated session checks ensuring users can only read or delete attachments belonging to their own account.
+
+> ⚠️ **SECURITY WARNING & SECRET ROTATION NOTICE:**
+> Git history permanently preserves commit snapshots. If any real API key, bot token, password, or secret was ever previously committed or hardcoded in any commit or branch, removing it from current files does **not** erase it from git history. **Immediately rotate and revoke any previously exposed keys in their respective provider consoles (Telegram @BotFather, Resend, Cloudflare, etc.).** Use tools like `git filter-repo` or BFG Repo-Cleaner if you need to purge historical commits before making a repository public.
 
 ---
 

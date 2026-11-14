@@ -17,13 +17,27 @@ export function formatInr(amount: number): string {
   return `₹${Math.round(amount).toLocaleString('en-IN')}`;
 }
 
+export function sanitizeSecretText(text: string, secrets: Array<string | undefined> = []): string {
+  let result = text;
+  for (const s of secrets) {
+    if (s && s.length >= 4) {
+      result = result.replaceAll(s, '[REDACTED]');
+    }
+  }
+  // Mask Telegram bot tokens (e.g. bot123456789:ABCdef-ghI_jkl)
+  result = result.replace(/bot\d+:[A-Za-z0-9_-]+/g, 'bot[REDACTED]');
+  // Mask Bearer tokens
+  result = result.replace(/Bearer\s+[A-Za-z0-9_\-\.]+/gi, 'Bearer [REDACTED]');
+  return result;
+}
+
 export async function sendTelegramMessage(
   env: Env,
   chatId: string,
   text: string
 ): Promise<{ ok: boolean; simulated?: boolean; error?: string }> {
   if (!env.TELEGRAM_BOT_TOKEN) {
-    console.log(`[DueGuard Telegram Preview] -> chatId=${chatId}\n${text}`);
+    console.log('[DueGuard Telegram Preview] Simulated alert to chatId=[REDACTED] (bot token not configured)');
     return { ok: true, simulated: true };
   }
 
@@ -43,11 +57,20 @@ export async function sendTelegramMessage(
     );
     if (!res.ok) {
       const body = await res.text();
-      return { ok: false, error: `Telegram API ${res.status}: ${body}` };
+      const sanitized = sanitizeSecretText(`Telegram API ${res.status}: ${body}`, [
+        env.TELEGRAM_BOT_TOKEN,
+        env.TELEGRAM_WEBHOOK_SECRET,
+      ]);
+      return { ok: false, error: sanitized };
     }
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Telegram request failed' };
+    const raw = err instanceof Error ? err.message : 'Telegram request failed';
+    const sanitized = sanitizeSecretText(raw, [
+      env.TELEGRAM_BOT_TOKEN,
+      env.TELEGRAM_WEBHOOK_SECRET,
+    ]);
+    return { ok: false, error: sanitized };
   }
 }
 
@@ -59,7 +82,7 @@ export async function sendEmailAlert(
   text: string
 ): Promise<{ ok: boolean; simulated?: boolean; error?: string }> {
   if (!env.RESEND_API_KEY) {
-    console.log(`[DueGuard Email Preview] -> to=${toEmail} | subject=${subject}\n${text}`);
+    console.log('[DueGuard Email Preview] Simulated alert to toEmail=[REDACTED] (Resend key not configured)');
     return { ok: true, simulated: true };
   }
 
@@ -80,10 +103,15 @@ export async function sendEmailAlert(
     });
     if (!res.ok) {
       const body = await res.text();
-      return { ok: false, error: `Resend API ${res.status}: ${body}` };
+      const sanitized = sanitizeSecretText(`Resend API ${res.status}: ${body}`, [
+        env.RESEND_API_KEY,
+      ]);
+      return { ok: false, error: sanitized };
     }
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Email request failed' };
+    const raw = err instanceof Error ? err.message : 'Email request failed';
+    const sanitized = sanitizeSecretText(raw, [env.RESEND_API_KEY]);
+    return { ok: false, error: sanitized };
   }
 }

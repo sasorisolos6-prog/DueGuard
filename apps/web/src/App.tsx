@@ -629,7 +629,7 @@ export function App() {
         onAccountDeleted={() => {
           setStoredToken(null);
           setUser(null);
-          setTrackers(loadDemoTrackers());
+          setTrackers(resetDemoTrackers());
           showToast('Account & all vault files permanently deleted.');
         }}
         onToast={showToast}

@@ -15,6 +15,14 @@ dist-ssr/
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+secrets/
+google-services.json
 
 # Cloudflare Wrangler local state
 .wrangler/

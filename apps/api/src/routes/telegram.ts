@@ -46,41 +46,45 @@ telegramRoutes.post('/sync', requireAuth, async (c) => {
     );
   }
 
-  const res = await fetch(
-    `https://api.telegram.org/bot${c.env.TELEGRAM_BOT_TOKEN}/getUpdates?limit=30`
-  );
-  if (!res.ok) {
-    return c.json({ error: 'Failed to poll Telegram updates.' }, 502);
-  }
-
-  const data = (await res.json()) as {
-    ok: boolean;
-    result?: Array<{ message?: { text?: string; chat?: { id?: number } } }>;
-  };
-
-  const targetCode = user.telegram_link_code.toUpperCase();
-  for (const update of data.result ?? []) {
-    const text = update.message?.text?.trim().toUpperCase() ?? '';
-    const chatId = update.message?.chat?.id;
-    if (!chatId) continue;
-
-    if (text === targetCode || text === `/START ${targetCode}`) {
-      await c.env.DB.prepare(
-        'UPDATE users SET telegram_chat_id = ?, telegram_link_code = NULL, telegram_alerts_enabled = 1 WHERE id = ?'
-      )
-        .bind(String(chatId), authUser.id)
-        .run();
-
-      await sendTelegramMessage(
-        c.env,
-        String(chatId),
-        '✅ <b>DueGuard linked!</b> You will now get expiry alerts here before trials, returns, or warranties lapse.'
-      );
-      return c.json({ linked: true });
+  try {
+    const res = await fetch(
+      `https://api.telegram.org/bot${c.env.TELEGRAM_BOT_TOKEN}/getUpdates?limit=30`
+    );
+    if (!res.ok) {
+      return c.json({ error: 'Failed to poll Telegram updates.' }, 502);
     }
-  }
 
-  return c.json({ linked: false, configured: true });
+    const data = (await res.json()) as {
+      ok: boolean;
+      result?: Array<{ message?: { text?: string; chat?: { id?: number } } }>;
+    };
+
+    const targetCode = user.telegram_link_code.toUpperCase();
+    for (const update of data.result ?? []) {
+      const text = update.message?.text?.trim().toUpperCase() ?? '';
+      const chatId = update.message?.chat?.id;
+      if (!chatId) continue;
+
+      if (text === targetCode || text === `/START ${targetCode}`) {
+        await c.env.DB.prepare(
+          'UPDATE users SET telegram_chat_id = ?, telegram_link_code = NULL, telegram_alerts_enabled = 1 WHERE id = ?'
+        )
+          .bind(String(chatId), authUser.id)
+          .run();
+
+        await sendTelegramMessage(
+          c.env,
+          String(chatId),
+          '✅ <b>DueGuard linked!</b> You will now get expiry alerts here before trials, returns, or warranties lapse.'
+        );
+        return c.json({ linked: true });
+      }
+    }
+
+    return c.json({ linked: false, configured: true });
+  } catch {
+    return c.json({ error: 'Failed to connect to Telegram service.' }, 502);
+  }
 });
 
 telegramRoutes.post('/unlink', requireAuth, async (c) => {
