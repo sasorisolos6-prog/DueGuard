@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { fromBase64, toBase64 } from '../lib/crypto';
+import { checkRateLimit } from '../lib/rateLimit';
 import { serializeTracker } from '../lib/validation';
 import { requireAuth } from '../middleware/auth';
 import { PLAN_LIMITS, type AppVariables, type Env, type TrackerRow } from '../types';
@@ -34,6 +35,18 @@ function matchesImageSignature(mime: string, bytes: Uint8Array): boolean {
 
 attachmentRoutes.post('/:id/attachment', async (c) => {
   const authUser = c.get('authUser');
+  const rateLimit = await checkRateLimit(c.env.DB, `upload:${authUser.id}`, 15, 60);
+  if (!rateLimit.allowed) {
+    c.header('Retry-After', String(rateLimit.retryAfterSeconds));
+    return c.json(
+      {
+        error: `Too many upload requests. Please wait ${rateLimit.retryAfterSeconds} seconds.`,
+        code: 'RATE_LIMIT_EXCEEDED',
+      },
+      429
+    );
+  }
+
   const id = c.req.param('id');
 
   const tracker = await c.env.DB.prepare(

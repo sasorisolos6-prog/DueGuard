@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { sendTelegramMessage } from '../lib/alerts';
 import { generateLinkCode } from '../lib/crypto';
+import { checkRateLimit } from '../lib/rateLimit';
 import { requireAuth } from '../middleware/auth';
 import type { AppVariables, Env, UserRow } from '../types';
 
@@ -8,6 +9,12 @@ export const telegramRoutes = new Hono<{ Bindings: Env; Variables: AppVariables 
 
 telegramRoutes.post('/link-code', requireAuth, async (c) => {
   const authUser = c.get('authUser');
+  const rateLimit = await checkRateLimit(c.env.DB, `tg_code:${authUser.id}`, 10, 60);
+  if (!rateLimit.allowed) {
+    c.header('Retry-After', String(rateLimit.retryAfterSeconds));
+    return c.json({ error: `Too many code requests. Please wait ${rateLimit.retryAfterSeconds}s.` }, 429);
+  }
+
   const code = generateLinkCode(6);
 
   await c.env.DB.prepare('UPDATE users SET telegram_link_code = ? WHERE id = ?')
@@ -24,6 +31,12 @@ telegramRoutes.post('/link-code', requireAuth, async (c) => {
 // Useful on localhost or when webhooks aren't registered yet: checks recent getUpdates
 telegramRoutes.post('/sync', requireAuth, async (c) => {
   const authUser = c.get('authUser');
+  const rateLimit = await checkRateLimit(c.env.DB, `tg_sync:${authUser.id}`, 10, 60);
+  if (!rateLimit.allowed) {
+    c.header('Retry-After', String(rateLimit.retryAfterSeconds));
+    return c.json({ error: `Too many sync checks. Please wait ${rateLimit.retryAfterSeconds}s.` }, 429);
+  }
+
   const user = await c.env.DB.prepare(
     'SELECT telegram_link_code, telegram_chat_id FROM users WHERE id = ?'
   )
@@ -99,6 +112,12 @@ telegramRoutes.post('/unlink', requireAuth, async (c) => {
 
 telegramRoutes.post('/send-sample', requireAuth, async (c) => {
   const authUser = c.get('authUser');
+  const rateLimit = await checkRateLimit(c.env.DB, `tg_sample:${authUser.id}`, 3, 60);
+  if (!rateLimit.allowed) {
+    c.header('Retry-After', String(rateLimit.retryAfterSeconds));
+    return c.json({ error: `Too many sample alerts. Please wait ${rateLimit.retryAfterSeconds}s.` }, 429);
+  }
+
   const user = await c.env.DB.prepare('SELECT telegram_chat_id FROM users WHERE id = ?')
     .bind(authUser.id)
     .first<Pick<UserRow, 'telegram_chat_id'>>();
@@ -121,6 +140,16 @@ telegramRoutes.post('/send-sample', requireAuth, async (c) => {
 
 // Public webhook endpoint for production Telegram Bot API
 telegramRoutes.post('/webhook', async (c) => {
+  const clientIp =
+    c.req.header('CF-Connecting-IP') ||
+    c.req.header('X-Forwarded-For')?.split(',')[0].trim() ||
+    '127.0.0.1';
+
+  const rateLimit = await checkRateLimit(c.env.DB, `tg_webhook:${clientIp}`, 30, 60);
+  if (!rateLimit.allowed) {
+    return c.json({ error: 'Too many requests.' }, 429);
+  }
+
   if (c.env.TELEGRAM_WEBHOOK_SECRET) {
     const incomingSecret = c.req.header('X-Telegram-Bot-Api-Secret-Token');
     if (incomingSecret !== c.env.TELEGRAM_WEBHOOK_SECRET) {

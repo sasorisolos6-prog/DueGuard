@@ -203,7 +203,11 @@ export function fileToDataUrl(file: File): Promise<string> {
 }
 
 function escapeIcsText(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\r\n|\r|\n/g, '\\n')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;');
 }
 
 export function downloadIcsFile(trackers: Tracker[], filename = 'dueguard-reminders.ics'): void {

@@ -106,7 +106,7 @@ export async function verifyAuthToken(
 ): Promise<AuthUser | null> {
   try {
     const key = getSecretKey(jwtSecret);
-    const { payload } = await jwtVerify(token, key);
+    const { payload } = await jwtVerify(token, key, { algorithms: ['HS256'] });
     if (!payload.sub || typeof payload.email !== 'string' || typeof payload.name !== 'string') {
       return null;
     }

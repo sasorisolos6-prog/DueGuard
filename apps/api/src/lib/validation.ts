@@ -34,6 +34,8 @@ export function isValidEmail(email: string): boolean {
 
 export function isValidIsoDate(dateStr: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+  const year = Number(dateStr.slice(0, 4));
+  if (year < 2000 || year > 2100) return false;
   const parsed = Date.parse(`${dateStr}T00:00:00Z`);
   return !Number.isNaN(parsed);
 }
