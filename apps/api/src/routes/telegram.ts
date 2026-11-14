@@ -97,7 +97,7 @@ telegramRoutes.post('/unlink', requireAuth, async (c) => {
   return c.json({ ok: true });
 });
 
-telegramRoutes.post('/test', requireAuth, async (c) => {
+telegramRoutes.post('/send-sample', requireAuth, async (c) => {
   const authUser = c.get('authUser');
   const user = await c.env.DB.prepare('SELECT telegram_chat_id FROM users WHERE id = ?')
     .bind(authUser.id)
@@ -110,7 +110,7 @@ telegramRoutes.post('/test', requireAuth, async (c) => {
   const result = await sendTelegramMessage(
     c.env,
     user.telegram_chat_id,
-    '🔔 <b>DueGuard Test Alert:</b> Your Telegram reminder channel is working!'
+    '🔔 <b>DueGuard Sample Alert:</b> Your Telegram reminder channel is working!'
   );
 
   if (!result.ok) {

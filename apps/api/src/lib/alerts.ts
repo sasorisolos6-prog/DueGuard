@@ -37,7 +37,6 @@ export async function sendTelegramMessage(
   text: string
 ): Promise<{ ok: boolean; simulated?: boolean; error?: string }> {
   if (!env.TELEGRAM_BOT_TOKEN) {
-    console.log('[DueGuard Telegram Preview] Simulated alert to chatId=[REDACTED] (bot token not configured)');
     return { ok: true, simulated: true };
   }
 
@@ -82,7 +81,6 @@ export async function sendEmailAlert(
   text: string
 ): Promise<{ ok: boolean; simulated?: boolean; error?: string }> {
   if (!env.RESEND_API_KEY) {
-    console.log('[DueGuard Email Preview] Simulated alert to toEmail=[REDACTED] (Resend key not configured)');
     return { ok: true, simulated: true };
   }
 

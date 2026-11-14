@@ -1,12 +1,45 @@
 import { Hono } from 'hono';
 import { hashPassword, signAuthToken, verifyPassword } from '../lib/crypto';
+import { checkRateLimit } from '../lib/rateLimit';
 import { isValidEmail, validateTrackerPayload } from '../lib/validation';
 import { requireAuth } from '../middleware/auth';
 import { PLAN_LIMITS, type AppVariables, type Env, type UserRow } from '../types';
 
 export const authRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
+function getClientIp(headerFn: (name: string) => string | undefined): string {
+  return (
+    headerFn('CF-Connecting-IP') ||
+    headerFn('X-Forwarded-For')?.split(',')[0].trim() ||
+    '127.0.0.1'
+  );
+}
+
+authRoutes.use('*', async (c, next) => {
+  if (!c.env.JWT_SECRET || c.env.JWT_SECRET.length < 16) {
+    console.error('Critical configuration failure: JWT_SECRET must be configured with at least 16 characters.');
+    return c.json({ error: 'Server configuration error: Authentication service unconfigured.' }, 500);
+  }
+  await next();
+});
+
 authRoutes.post('/register', async (c) => {
+  const ip = getClientIp((h) => c.req.header(h));
+  const rateLimit = await checkRateLimit(c.env.DB, `register:${ip}`, 5, 60);
+  c.header('X-RateLimit-Limit', '5');
+  c.header('X-RateLimit-Remaining', String(rateLimit.remaining));
+
+  if (!rateLimit.allowed) {
+    c.header('Retry-After', String(rateLimit.retryAfterSeconds));
+    return c.json(
+      {
+        error: `Too many registration attempts. Please try again in ${rateLimit.retryAfterSeconds} seconds.`,
+        code: 'RATE_LIMIT_EXCEEDED',
+      },
+      429
+    );
+  }
+
   const body = await c.req.json<Record<string, unknown>>().catch(() => null);
   if (!body) return c.json({ error: 'Invalid JSON request body.' }, 400);
 
@@ -86,6 +119,22 @@ authRoutes.post('/register', async (c) => {
 });
 
 authRoutes.post('/login', async (c) => {
+  const ip = getClientIp((h) => c.req.header(h));
+  const rateLimit = await checkRateLimit(c.env.DB, `login:${ip}`, 5, 60);
+  c.header('X-RateLimit-Limit', '5');
+  c.header('X-RateLimit-Remaining', String(rateLimit.remaining));
+
+  if (!rateLimit.allowed) {
+    c.header('Retry-After', String(rateLimit.retryAfterSeconds));
+    return c.json(
+      {
+        error: `Too many login attempts. Please try again in ${rateLimit.retryAfterSeconds} seconds.`,
+        code: 'RATE_LIMIT_EXCEEDED',
+      },
+      429
+    );
+  }
+
   const body = await c.req.json<Record<string, unknown>>().catch(() => null);
   if (!body) return c.json({ error: 'Invalid JSON request body.' }, 400);
 

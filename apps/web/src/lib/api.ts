@@ -180,7 +180,7 @@ export const api = {
   },
 
   async testTelegramAlert() {
-    return apiFetch<{ ok: boolean; simulated?: boolean }>('/api/telegram/test', {
+    return apiFetch<{ ok: boolean; simulated?: boolean }>('/api/telegram/send-sample', {
       method: 'POST',
     });
   },
